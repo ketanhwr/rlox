@@ -2,6 +2,11 @@
 enum OpCode {
     Return,
     Constant(usize),
+    Negate,
+    Add,
+    Subtract,
+    Multiply,
+    Divide,
 }
 
 type Value = f64;
@@ -32,7 +37,7 @@ enum InterpretResult {
 
 struct VM<'a> {
     chunk: &'a Chunk,
-    ip: usize,  // TODO: Change to iterator
+    ip: usize, // TODO: Change to iterator
     stack: Vec<Value>,
 }
 
@@ -62,6 +67,22 @@ impl VM<'_> {
                     println!("{value}");
                     self.stack.push(value);
                 }
+                OpCode::Negate => {
+                    let value = self.stack.pop().unwrap(); // TODO: Handle None case
+                    self.stack.push(-value);
+                }
+                OpCode::Add | OpCode::Subtract | OpCode::Multiply | OpCode::Divide => {
+                    let rhs = self.stack.pop().unwrap();
+                    let lhs = self.stack.pop().unwrap();
+                    let res = match instr {
+                        OpCode::Add => lhs + rhs,
+                        OpCode::Subtract => lhs - rhs,
+                        OpCode::Multiply => lhs * rhs,
+                        OpCode::Divide => lhs / rhs,
+                        _ => panic!("Unexpected!"),
+                    };
+                    self.stack.push(res);
+                }
             }
         }
     }
@@ -74,8 +95,21 @@ fn main() {
         constants: Vec::new(),
     };
 
-    let constant = OpCode::Constant(chunk.add_constant(1.2));
+    // return (-((1.2 + 3.4) / 5.6))
+    let mut constant = OpCode::Constant(chunk.add_constant(1.2));
     chunk.write_chunk(constant, 123);
+
+    constant = OpCode::Constant(chunk.add_constant(3.4));
+    chunk.write_chunk(constant, 123);
+
+    chunk.write_chunk(OpCode::Add, 123);
+
+    constant = OpCode::Constant(chunk.add_constant(5.6));
+    chunk.write_chunk(constant, 123);
+
+    chunk.write_chunk(OpCode::Divide, 123);
+    chunk.write_chunk(OpCode::Negate, 123);
+
     chunk.write_chunk(OpCode::Return, 123);
 
     let mut vm = VM::new(&chunk);
@@ -94,9 +128,10 @@ fn disassemble_chunk(chunk: &Chunk, name: &str) {
         } else {
             print!("{:4} ", chunk.lines[i]);
         }
+        print!("{:?} ", chunk.code[i]);
         match chunk.code[i] {
-            OpCode::Return => println!("{:?}", chunk.code[i]),
-            OpCode::Constant(idx) => println!("{:?} {}", chunk.code[i], chunk.constants[idx]),
+            OpCode::Constant(idx) => println!("{}", chunk.constants[idx]),
+            _ => println!(),
         }
     }
 }
