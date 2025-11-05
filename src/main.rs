@@ -1,13 +1,15 @@
 #[derive(Debug)]
 enum OpCode {
-    OpReturn,
-    OpConstant(usize),
+    Return,
+    Constant(usize),
 }
+
+type Value = f64;
 
 struct Chunk {
     code: Vec<OpCode>,
     lines: Vec<usize>,
-    constants: Vec<f64>,
+    constants: Vec<Value>,
 }
 
 impl Chunk {
@@ -16,9 +18,52 @@ impl Chunk {
         self.lines.push(line)
     }
 
-    fn add_constant(&mut self, value: f64) -> usize {
+    fn add_constant(&mut self, value: Value) -> usize {
         self.constants.push(value);
         self.constants.len() - 1
+    }
+}
+
+enum InterpretResult {
+    Ok,
+    CompileError,
+    RuntimeError,
+}
+
+struct VM<'a> {
+    chunk: &'a Chunk,
+    ip: usize,  // TODO: Change to iterator
+    stack: Vec<Value>,
+}
+
+impl VM<'_> {
+    fn new(chunk: &Chunk) -> VM<'_> {
+        VM {
+            chunk,
+            ip: 0,
+            stack: Vec::with_capacity(256),
+        }
+    }
+
+    fn run(&mut self) -> InterpretResult {
+        loop {
+            let idx = self.ip;
+            self.ip += 1;
+            let instr = &self.chunk.code[idx];
+            println!("{instr:?} : {:?}", self.stack);
+            match instr {
+                OpCode::Return => {
+                    let value = self.stack.pop().unwrap(); // TODO: Handle None case
+                    println!("{value}");
+                    return InterpretResult::Ok;
+                }
+                OpCode::Constant(cons) => {
+                    let value = self.chunk.constants[*cons];
+                    println!("{value}");
+                    self.stack.push(value);
+                }
+            }
+        }
     }
 }
 
@@ -29,9 +74,12 @@ fn main() {
         constants: Vec::new(),
     };
 
-    let constant = OpCode::OpConstant(chunk.add_constant(1.2));
+    let constant = OpCode::Constant(chunk.add_constant(1.2));
     chunk.write_chunk(constant, 123);
-    chunk.write_chunk(OpCode::OpReturn, 123);
+    chunk.write_chunk(OpCode::Return, 123);
+
+    let mut vm = VM::new(&chunk);
+    vm.run();
 
     disassemble_chunk(&chunk, "test chunk");
 }
@@ -47,8 +95,8 @@ fn disassemble_chunk(chunk: &Chunk, name: &str) {
             print!("{:4} ", chunk.lines[i]);
         }
         match chunk.code[i] {
-            OpCode::OpReturn => println!("{:?}", chunk.code[i]),
-            OpCode::OpConstant(idx) => println!("{:?} {}", chunk.code[i], chunk.constants[idx]),
+            OpCode::Return => println!("{:?}", chunk.code[i]),
+            OpCode::Constant(idx) => println!("{:?} {}", chunk.code[i], chunk.constants[idx]),
         }
     }
 }
