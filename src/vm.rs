@@ -50,7 +50,7 @@ impl VM<'_> {
                         OpCode::Subtract => lhs - rhs,
                         OpCode::Multiply => lhs * rhs,
                         OpCode::Divide => lhs / rhs,
-                        _ => panic!("Unexpected!"),
+                        _ => unreachable!(),
                     };
                     self.stack.push(res);
                 }

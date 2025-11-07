@@ -32,4 +32,3 @@ impl Chunk {
         self.constants.len() - 1
     }
 }
-

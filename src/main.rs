@@ -1,10 +1,11 @@
 mod chunk;
+mod debug;
 mod vm;
 
-use crate::chunk::{OpCode, Chunk};
+use crate::chunk::{Chunk, OpCode};
 
 fn main() {
-    let mut chunk = chunk::Chunk {
+    let mut chunk = Chunk {
         code: Vec::new(),
         lines: Vec::new(),
         constants: Vec::new(),
@@ -30,23 +31,5 @@ fn main() {
     let mut vm = vm::VM::new(&chunk);
     vm.run();
 
-    disassemble_chunk(&chunk, "test chunk");
-}
-
-fn disassemble_chunk(chunk: &Chunk, name: &str) {
-    println!("=== {name} ===");
-
-    for i in 0..chunk.code.len() {
-        print!("{i:04} ");
-        if i > 0 && chunk.lines[i] == chunk.lines[i - 1] {
-            print!("   | ");
-        } else {
-            print!("{:4} ", chunk.lines[i]);
-        }
-        print!("{:?} ", chunk.code[i]);
-        match chunk.code[i] {
-            OpCode::Constant(idx) => println!("{}", chunk.constants[idx]),
-            _ => println!(),
-        }
-    }
+    debug::disassemble_chunk(&chunk, "test chunk");
 }
